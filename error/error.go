@@ -3,6 +3,7 @@ package errorlib
 import (
 	"encoding/json"
 	"fmt"
+	"runtime"
 )
 
 type Err struct {
@@ -11,6 +12,7 @@ type Err struct {
 	errors    []error
 	message   string
 	detail    map[string]interface{}
+	location  string
 }
 
 type Error interface {
@@ -20,6 +22,7 @@ type Error interface {
 	WithError(error) Error
 	WithMessage(string) Error
 	WithDetail(string, interface{}) Error
+	WithErrorLocation() Error
 }
 
 type Type string
@@ -35,6 +38,7 @@ func NewError(errType Type, code string) Error {
 	return Err{
 		errorType: errType,
 		code:      code,
+		detail:    make(map[string]interface{}),
 	}
 }
 
@@ -65,6 +69,12 @@ func (e Err) WithDetail(detailName string, detailData interface{}) Error {
 	return e
 }
 
+func (e Err) WithErrorLocation() Error {
+	_, f, l, _ := runtime.Caller(1)
+	e.location = fmt.Sprintf("%s:%d", f, l)
+	return e
+}
+
 func (e Err) Error() string {
 	if e.message != "" {
 		return fmt.Sprintf("[%s] %s : %s", e.errorType, e.code, e.message)
@@ -74,17 +84,19 @@ func (e Err) Error() string {
 
 func (e Err) MarshalJSON() ([]byte, error) {
 	err := struct {
-		Code    string                 `json:"code"`
-		Type    Type                   `json:"type"`
-		Errors  []error                `json:"errors"`
-		Message string                 `json:"message"`
-		Detail  map[string]interface{} `json:"detail"`
+		Code     string                 `json:"code"`
+		Type     Type                   `json:"type"`
+		Errors   []error                `json:"errors,omitempty"`
+		Message  string                 `json:"message,omitempty"`
+		Detail   map[string]interface{} `json:"detail,omitempty"`
+		Location string                 `json:"location,omitempty"`
 	}{
-		Code:    e.code,
-		Type:    e.errorType,
-		Errors:  e.errors,
-		Message: e.message,
-		Detail:  e.detail,
+		Code:     e.code,
+		Type:     e.errorType,
+		Errors:   e.errors,
+		Message:  e.message,
+		Detail:   e.detail,
+		Location: e.location,
 	}
 	return json.Marshal(err)
 }
