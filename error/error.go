@@ -1,6 +1,8 @@
 package errorlib
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"runtime"
@@ -18,6 +20,7 @@ type Err struct {
 type Error interface {
 	json.Marshaler
 	error
+	Hash() string
 	Type() Type
 	WithError(error) Error
 	WithMessage(string) Error
@@ -40,6 +43,12 @@ func NewError(errType Type, code string) Error {
 		code:      code,
 		detail:    make(map[string]interface{}),
 	}
+}
+
+func (e Err) Hash() string {
+	h := sha256.New()
+	h.Write([]byte(fmt.Sprint(e.errorType, e.code)))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func (e Err) Type() Type {
