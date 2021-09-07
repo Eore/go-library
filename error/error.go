@@ -20,6 +20,7 @@ type Err struct {
 type Error interface {
 	json.Marshaler
 	error
+	ErrorCode() string
 	Hash() string
 	Type() Type
 	WithError(error) Error
@@ -43,6 +44,10 @@ func NewError(errType Type, code string) Error {
 		code:      code,
 		detail:    make(map[string]interface{}),
 	}
+}
+
+func (e Err) ErrorCode() string {
+	return e.code
 }
 
 func (e Err) Hash() string {
